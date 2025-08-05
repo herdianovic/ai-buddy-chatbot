@@ -1,0 +1,9 @@
+# Abaikan folder dependencies
+node_modules/
+
+# Abaikan file environment yang berisi API Key
+.env
+
+# Abaikan file sistem operasi
+.DS_Store
+Thumbs.db
