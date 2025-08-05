@@ -11,8 +11,13 @@ const headerAvatar = document.getElementById("header-avatar");
 const attachBtn = document.getElementById("attach-btn");
 const fileInput = document.getElementById("file-input");
 const filePreviewContainer = document.getElementById("file-preview-container");
+const filePreviewImageWrapper = document.getElementById("file-preview-image-wrapper");
 const filePreviewImage = document.getElementById("file-preview-image");
+const filePreviewName = document.getElementById("file-preview-name");
 const removeFileBtn = document.getElementById("remove-file-btn");
+
+// Elemen baru untuk panel notifikasi
+const sidePanels = document.querySelectorAll(".side-panel");
 
 let attachedFile = null;
 
@@ -107,7 +112,34 @@ roleMenu.addEventListener("click", (e) => {
   }
 });
 
+// Logika baru untuk notifikasi klik
+sidePanels.forEach((panel) => {
+  const trigger = panel.querySelector(".trigger-icon");
+  trigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    sidePanels.forEach((p) => {
+      if (p !== panel) {
+        p.classList.remove("active");
+      }
+    });
+    panel.classList.toggle("active");
+  });
+});
+
 document.addEventListener("click", (e) => {
+  let clickedOutside = true;
+  sidePanels.forEach((panel) => {
+    if (panel.contains(e.target)) {
+      clickedOutside = false;
+    }
+  });
+
+  if (clickedOutside) {
+    sidePanels.forEach((panel) => {
+      panel.classList.remove("active");
+    });
+  }
+
   if (!roleMenu.contains(e.target) && !menuBtn.contains(e.target)) {
     roleMenu.classList.add("hidden");
   }
@@ -117,17 +149,23 @@ attachBtn.addEventListener("click", () => fileInput.click());
 
 fileInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
-  if (file && file.type.startsWith("image/")) {
+  if (!file) return;
+
+  attachedFile = file;
+  filePreviewContainer.style.display = "flex";
+
+  if (file.type.startsWith("image/")) {
+    filePreviewImageWrapper.style.display = "block";
+    filePreviewName.style.display = "none";
     const reader = new FileReader();
     reader.onload = (event) => {
-      attachedFile = {
-        data: event.target.result,
-        mimeType: file.type,
-      };
       filePreviewImage.src = event.target.result;
-      filePreviewContainer.style.display = "block";
     };
     reader.readAsDataURL(file);
+  } else {
+    filePreviewImageWrapper.style.display = "none";
+    filePreviewName.style.display = "block";
+    filePreviewName.textContent = file.name;
   }
 });
 
@@ -140,38 +178,46 @@ form.addEventListener("submit", async function (e) {
 
   let messageContent = userMessage;
   if (attachedFile) {
-    messageContent += `<br><img src="${attachedFile.data}" alt="uploaded image">`;
+    if (attachedFile.type.startsWith("image/")) {
+      messageContent += `<br><img src="${URL.createObjectURL(attachedFile)}" alt="uploaded image">`;
+    } else {
+      messageContent += `<br><i>[File terlampir: ${attachedFile.name}]</i>`;
+    }
   }
   appendMessage("user", messageContent);
   input.value = "";
 
   const loadingIndicator = appendMessage("bot loading", "<span></span><span></span><span></span>", false);
 
-  try {
-    const historyForAPI = chatHistories[currentRole].slice(0, -1);
+  const formData = new FormData();
+  formData.append("message", userMessage);
+  formData.append("role", currentRole);
+  formData.append("history", JSON.stringify(chatHistories[currentRole].slice(0, -1)));
+  if (attachedFile) {
+    formData.append("file", attachedFile);
+  }
 
+  try {
     const response = await fetch("http://localhost:3000/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: userMessage,
-        role: currentRole,
-        history: historyForAPI,
-        file: attachedFile,
-      }),
+      body: formData,
     });
 
     clearAttachedFile();
     chatBox.removeChild(loadingIndicator);
 
-    if (!response.ok) throw new Error("Gagal mendapatkan respons dari server.");
+    if (!response.ok) {
+      const errorData = await response.json();
+      const detail = errorData.details || "Tidak ada detail.";
+      throw new Error(`Server Error: ${detail}`);
+    }
 
     const data = await response.json();
     appendMessage("bot", data.reply);
   } catch (error) {
     console.error("Error:", error);
     if (chatBox.contains(loadingIndicator)) chatBox.removeChild(loadingIndicator);
-    appendMessage("bot", "Maaf, sepertinya ada masalah. Coba lagi nanti ya.", false);
+    appendMessage("bot", `Maaf, terjadi masalah: ${error.message}`, false);
     clearAttachedFile();
   }
 });

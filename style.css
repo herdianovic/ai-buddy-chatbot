@@ -61,36 +61,40 @@ body::before {
   justify-content: center;
 }
 
+/* PERUBAHAN: Panel samping sekarang menjadi notifikasi absolut */
 .side-panel {
-  flex: 1;
-  max-width: 400px;
-  z-index: 10;
-  position: relative;
-  height: 100%;
-  display: flex;
-  align-items: center;
+  position: fixed;
+  top: 2rem;
+  z-index: 20;
+  width: 40px; /* Lebar awal saat terminimize */
+  height: 40px;
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
 }
 
-.side-panel::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: 12px;
-  height: 12px;
+.description-panel {
+  left: 2rem;
+}
+
+.info-panel {
+  right: 2rem;
+}
+
+.side-panel .trigger-icon {
+  width: 40px;
+  height: 40px;
   background-color: #fff;
   border-radius: 50%;
   cursor: pointer;
   animation: white-glow 2s infinite;
+  position: absolute;
+  top: 0;
 }
 
-.description-panel::before {
+.description-panel .trigger-icon {
   right: 0;
-  transform: translateY(-50%);
 }
-
-.info-panel::before {
+.info-panel .trigger-icon {
   left: 0;
-  transform: translateY(-50%);
 }
 
 @keyframes white-glow {
@@ -113,22 +117,23 @@ body::before {
   -webkit-backdrop-filter: blur(10px);
   padding: 2rem;
   box-sizing: border-box;
-  width: 100%;
-  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.3s ease;
+  width: 350px;
   opacity: 0;
-  transform: scale(0.1);
+  pointer-events: none;
+  transform: scale(0.8);
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.3s ease;
 }
 
 .description-panel .content-box {
-  transform-origin: bottom right;
+  transform-origin: top left;
 }
-
 .info-panel .content-box {
-  transform-origin: bottom left;
+  transform-origin: top right;
 }
 
-.side-panel:hover .content-box {
+.side-panel.active .content-box {
   opacity: 1;
+  pointer-events: auto;
   transform: scale(1);
 }
 
@@ -173,10 +178,12 @@ body::before {
   color: var(--secondary-text-color);
 }
 
+/* PERUBAHAN: Lebarkan chatbox */
 .chatbot-panel {
-  flex: 0 0 420px;
+  flex: 0 0 70%;
+  max-width: 900px;
   height: 95vh;
-  max-height: 800px;
+  max-height: 900px;
 }
 
 .chat-container {
@@ -398,16 +405,24 @@ body::before {
   background: rgba(0, 0, 0, 0.2);
   position: relative;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#file-preview-image-wrapper {
+  display: block;
 }
 #file-preview-image {
-  max-height: 80px;
+  max-height: 40px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
 }
+#file-preview-name {
+  font-size: 0.9rem;
+}
 #remove-file-btn {
-  position: absolute;
-  top: 5px;
-  right: 15px;
+  position: static;
+  margin-left: auto;
   background: rgba(0, 0, 0, 0.5);
   color: white;
   border: none;
@@ -418,6 +433,7 @@ body::before {
   font-size: 16px;
   line-height: 24px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .chat-input-area {
@@ -471,12 +487,10 @@ body::before {
 }
 
 @media (max-width: 1200px) {
-  .side-panel {
-    display: none;
-  }
   .chatbot-panel {
     flex: 1;
-    max-width: 600px;
+    max-width: 100%;
+    width: 100%;
   }
 }
 
